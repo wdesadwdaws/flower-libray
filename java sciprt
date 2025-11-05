@@ -1,0 +1,18 @@
+api.setDefaultMobSetting("Cave Golem", "attackInterval", 5000);
+api.setDefaultMobSetting("Cave Golem", "heldItemName", "Wood Sword");
+api.setDefaultMobSetting("Cave Golem", "attackItemName", "Diamond Sword");
+api.setDefaultMobSetting("Cave Golem", "initialHealth", 100);
+api.setDefaultMobSetting("Cave Golem", "maxHealth", 100);
+api.setDefaultMobSetting("Cave Golem", "baseWalkingSpeed", 5);
+api.setDefaultMobSetting("Cave Golem", "baseRunningSpeed", 5);
+
+let Level1Bot = api.attemptSpawnMob("Cave Golem", 1068.50, 978, 947.50, { name: "Mom" });
+api.setHealth(Level1Bot, 100, undefined, true);
+api.applyEffect(Level1Bot, "Frozen", 3000, { inbuiltLevel: 50 });
+api.applyEffect(myId, "Frozen", 3000, { inbuiltLevel: 50 });
+api.applyEffect(myId, "Health Regen", 3000, { inbuiltLevel: 1 });
+api.applyEffect(Level1Bot, "Health Regen", 3000, { inbuiltLevel: 1 });
+
+
+  api.setPosition(myId, [1054.50, 978, 933.50,]);
+  api.sendMessage(myId, "Mom is going to kill u");
