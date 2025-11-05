@@ -1,0 +1,156 @@
+-- // Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+--== Variables ==--
+local camera = workspace.CurrentCamera
+local viewport = camera.ViewportSize
+
+--== Library ==--
+local Library = {}
+Library.Tree = {}
+
+-- Validate function
+function Library:validate(defaults, options)
+	for i, v in pairs(defaults) do
+		if options[i] == nil then
+			options[i] = v
+		end
+	end
+	return options
+end
+
+function Library:new(options)
+	options = Library:validate({
+		name = "UI "
+	}, options or {})
+
+
+	Library.Tree["1"] = Instance.new("ScreenGui")
+	Library.Tree["1"].Name = "sk library"
+	Library.Tree["1"].IgnoreGuiInset = true
+	Library.Tree["1"].Parent = RunService:IsStudio() and Players.LocalPlayer:WaitForChild("PlayerGui") or CoreGui
+
+	-- Create Main Frame
+	Library.Tree["2"] = Instance.new("Frame")
+	local main = Library.Tree["2"]
+	main.Name = "Main"
+	main.Parent = Library.Tree["1"]
+	main.BorderSizePixel = 0
+	main.BackgroundColor3 = Color3.fromRGB(61, 62, 62)
+	main.Size = UDim2.new(0, 400, 0, 300)
+
+	-- === Auto-center ===
+	local function centerFrame()
+		local sizeXOffset = main.Size.X.Offset
+		local sizeYOffset = main.Size.Y.Offset
+		local newViewport = camera.ViewportSize
+		main.Position = UDim2.fromOffset(
+			(newViewport.X / 2) - (sizeXOffset / 2),
+			(newViewport.Y / 2) - (sizeYOffset / 2)
+		)
+	end
+	centerFrame()
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(centerFrame)
+
+	Library.Tree["3"] = Instance.new("UICorner")
+	Library.Tree["3"].CornerRadius = UDim.new(0, 6)
+	Library.Tree["3"].Parent = main
+
+	-- DropShadowHolder
+	Library.Tree["4"] = Instance.new("Frame")
+	Library.Tree["4"].ZIndex = 0
+	Library.Tree["4"].BorderSizePixel = 0
+	Library.Tree["4"].Size = UDim2.new(1, 0, 1, 0)
+	Library.Tree["4"].Name = "DropShadowHolder"
+	Library.Tree["4"].BackgroundTransparency = 1
+	Library.Tree["4"].Parent = main
+
+
+	Library.Tree["5"] = Instance.new("ImageLabel")
+	Library.Tree["5"].ZIndex = 0
+	Library.Tree["5"].BorderSizePixel = 0
+	Library.Tree["5"].SliceCenter = Rect.new(49, 49, 450, 450)
+	Library.Tree["5"].ScaleType = Enum.ScaleType.Slice
+	Library.Tree["5"].ImageTransparency = 0.5
+	Library.Tree["5"].ImageColor3 = Color3.fromRGB(0, 0, 0)
+	Library.Tree["5"].AnchorPoint = Vector2.new(0.5, 0.5)
+	Library.Tree["5"].Image = "rbxassetid://6014261993"
+	Library.Tree["5"].Size = UDim2.new(1, 47, 1, 47)
+	Library.Tree["5"].BackgroundTransparency = 1
+	Library.Tree["5"].Name = "DropShadow"
+	Library.Tree["5"].Position = UDim2.new(0.5, 0, 0.5, 0)
+	Library.Tree["5"].Parent = Library.Tree["4"]
+
+	-- TopBar
+	Library.Tree["6"] = Instance.new("Frame")
+	Library.Tree["6"].BorderSizePixel = 0
+	Library.Tree["6"].BackgroundColor3 = Color3.fromRGB(60, 61, 61)
+	Library.Tree["6"].Size = UDim2.new(1, 0, 0, 30)
+	Library.Tree["6"].BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Library.Tree["6"].Name = "TopBar"
+	Library.Tree["6"].Parent = main
+
+
+	Library.Tree["7"] = Instance.new("UICorner")
+	Library.Tree["7"].CornerRadius = UDim.new(0, 6)
+	Library.Tree["7"].Parent = Library.Tree["6"]
+
+
+	Library.Tree["8"] = Instance.new("Frame")
+	Library.Tree["8"].BorderSizePixel = 0
+	Library.Tree["8"].BackgroundColor3 = Color3.fromRGB(60, 61, 61)
+	Library.Tree["8"].AnchorPoint = Vector2.new(0, 1)
+	Library.Tree["8"].Size = UDim2.new(1, 0, 0.5, 0)
+	Library.Tree["8"].Position = UDim2.new(0, 0, 1, 0)
+	Library.Tree["8"].BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Library.Tree["8"].Name = "Extension"
+	Library.Tree["8"].Parent = Library.Tree["6"]
+
+
+	Library.Tree["9"] = Instance.new("TextLabel")
+	Library.Tree["9"].BorderSizePixel = 0
+	Library.Tree["9"].TextSize = 14
+	Library.Tree["9"].TextXAlignment = Enum.TextXAlignment.Left
+	Library.Tree["9"].BackgroundColor3 = Color3.fromRGB(84, 85, 85)
+	Library.Tree["9"].FontFace = Font.new("rbxasset://fonts/families/Ubuntu.json")
+	Library.Tree["9"].TextColor3 = Color3.fromRGB(255, 255, 255)
+	Library.Tree["9"].Size = UDim2.new(0.5, 0, 1, 0)
+	Library.Tree["9"].Text = options["name"]
+	Library.Tree["9"].Name = options["name"]
+	Library.Tree["9"].Parent = Library.Tree["6"]
+
+
+	Library.Tree["a"] = Instance.new("UIPadding")
+	Library.Tree["a"].PaddingTop = UDim.new(0, 1)
+	Library.Tree["a"].PaddingLeft = UDim.new(0, 8)
+	Library.Tree["a"].Parent = Library.Tree["9"]
+
+
+	Library.Tree["b"] = Instance.new("ImageLabel")
+	Library.Tree["b"].BorderSizePixel = 0
+	Library.Tree["b"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Library.Tree["b"].AnchorPoint = Vector2.new(1, 0.5)
+	Library.Tree["b"].Image = "rbxassetid://150902481"
+	Library.Tree["b"].Size = UDim2.new(0, 18, 0, 18)
+	Library.Tree["b"].BackgroundTransparency = 1
+	Library.Tree["b"].Name = "Close"
+	Library.Tree["b"].Position = UDim2.new(1, -6, 0.5, 0)
+	Library.Tree["b"].Parent = Library.Tree["6"]
+
+
+	Library.Tree["c"] = Instance.new("Frame")
+	Library.Tree["c"].BorderSizePixel = 0
+	Library.Tree["c"].BackgroundColor3 = Color3.fromRGB(66, 66, 66)
+	Library.Tree["c"].AnchorPoint = Vector2.new(0, 1)
+	Library.Tree["c"].Size = UDim2.new(1, 0, 0, 1)
+	Library.Tree["c"].Position = UDim2.new(0, 0, 1, 0)
+	Library.Tree["c"].Parent = Library.Tree["6"]
+
+	return Library.Tree["1"]
+end
+
+
+Library:new()
