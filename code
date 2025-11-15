@@ -1,251 +1,555 @@
---========================================================--
---                SUPER CUSTOM UI LIBRARY                 --
---========================================================--
 
 local Library = {}
 Library.__index = Library
 
+-- services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local UIS = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 
-------------------------------------------------------------
--- INIT GUI
-------------------------------------------------------------
-function Library:Init(opts)
-	opts = opts or {}
-	opts.name = opts.name or "Custom UI"
-
-	local gui = setmetatable({}, Library)
-	gui.Tabs = {}
-	gui.CurrentTab = nil
-
-	gui.ScreenGui = Instance.new("ScreenGui")
-	gui.ScreenGui.Name = opts.name
-	gui.ScreenGui.ResetOnSpawn = false
-	gui.ScreenGui.Parent = game:GetService("CoreGui")
-
-	gui.Main = Instance.new("Frame")
-	gui.Main.Size = UDim2.new(0, 680, 0, 450)
-	gui.Main.Position = UDim2.new(0.5, -340, 0.5, -225)
-	gui.Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-	gui.Main.BorderSizePixel = 0
-	gui.Main.Parent = gui.ScreenGui
-
-	gui.Nav = Instance.new("Frame")
-	gui.Nav.Size = UDim2.new(0, 150, 1, 0)
-	gui.Nav.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-	gui.Nav.Parent = gui.Main
-
-	local layout = Instance.new("UIListLayout", gui.Nav)
-	layout.Padding = UDim.new(0, 6)
-	layout.FillDirection = Enum.FillDirection.Vertical
-
-	return gui
+-- helper tween
+local function Tween(obj, props, time)
+	time = time or 0.12
+	local info = TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local tw = TweenService:Create(obj, info, props)
+	tw:Play()
+	return tw
 end
 
-------------------------------------------------------------
--- CREATE TAB
-------------------------------------------------------------
+-- Themes
+Library.Themes = {
+	Roblox = {
+		Main = Color3.fromRGB(245,245,245),
+		Nav = Color3.fromRGB(235,235,235),
+		Panel = Color3.fromRGB(255,255,255),
+		Accent = Color3.fromRGB(6, 86, 186),
+		Text = Color3.fromRGB(20,20,20),
+		Muted = Color3.fromRGB(110,110,110),
+		Surface = Color3.fromRGB(240,240,240),
+		Hover = Color3.fromRGB(225,225,225),
+		CodeBg = Color3.fromRGB(250,250,250),
+	},
+
+	Light = {
+		Main = Color3.fromRGB(250,250,250),
+		Nav = Color3.fromRGB(240,240,240),
+		Panel = Color3.fromRGB(255,255,255),
+		Accent = Color3.fromRGB(50,50,180),
+		Text = Color3.fromRGB(10,10,10),
+		Muted = Color3.fromRGB(120,120,120),
+		Surface = Color3.fromRGB(245,245,245),
+		Hover = Color3.fromRGB(230,230,230),
+		CodeBg = Color3.fromRGB(250,250,250),
+	},
+
+	Midnight = {
+		Main = Color3.fromRGB(18,6,40),
+		Nav = Color3.fromRGB(28,10,60),
+		Panel = Color3.fromRGB(36,12,70),
+		Accent = Color3.fromRGB(140,60,200),
+		Text = Color3.fromRGB(235,220,255),
+		Muted = Color3.fromRGB(170,140,190),
+		Surface = Color3.fromRGB(30,12,50),
+		Hover = Color3.fromRGB(46,18,78),
+		CodeBg = Color3.fromRGB(24,8,48),
+	},
+
+	Ocean = {
+		Main = Color3.fromRGB(8,28,50),
+		Nav = Color3.fromRGB(14,40,70),
+		Panel = Color3.fromRGB(18,48,90),
+		Accent = Color3.fromRGB(40,160,240),
+		Text = Color3.fromRGB(220,235,245),
+		Muted = Color3.fromRGB(160,185,200),
+		Surface = Color3.fromRGB(12,36,66),
+		Hover = Color3.fromRGB(24,56,96),
+		CodeBg = Color3.fromRGB(10,30,58),
+	}
+}
+
+-- Default UI metrics
+local DEFAULT_WIDTH = 760
+local DEFAULT_HEIGHT = 520
+local NAV_WIDTH = 180
+local TOP_HEIGHT = 40
+
+-- safe setter
+local function safeSetImage(obj, url)
+	pcall(function() obj.Image = url end)
+end
+
+-- create base UI
+function Library:Init(opts)
+	opts = opts or {}
+	local title = opts.name or "Flower UI"
+
+	local self = setmetatable({}, Library)
+	self.Tabs = {}
+	self.CurrentTab = nil
+	self.ThemeName = opts.theme or "Roblox"
+	self.Theme = self.Themes[self.ThemeName] or self.Themes.Roblox
+
+	-- ScreenGui
+	local sg = Instance.new("ScreenGui")
+	sg.Name = title:gsub("%s+","_") .. "_FlowerUI"
+	sg.ResetOnSpawn = false
+	sg.Parent = Players.LocalPlayer:FindFirstChild("PlayerGui") or Players.LocalPlayer:WaitForChild("PlayerGui")
+	self.ScreenGui = sg
+
+	-- main window
+	local Main = Instance.new("Frame")
+	Main.Name = "MainWindow"
+	Main.Size = UDim2.new(0, DEFAULT_WIDTH, 0, DEFAULT_HEIGHT)
+	Main.Position = UDim2.new(0.5, -DEFAULT_WIDTH/2, 0.5, -DEFAULT_HEIGHT/2)
+	Main.BackgroundColor3 = self.Theme.Main
+	Main.BorderSizePixel = 0
+	Main.Parent = sg
+	self.Main = Main
+	Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
+
+	-- top bar
+	local Top = Instance.new("Frame", Main)
+	Top.Name = "TopBar"
+	Top.Size = UDim2.new(1, 0, 0, TOP_HEIGHT)
+	Top.Position = UDim2.new(0, 0, 0, 0)
+	Top.BackgroundColor3 = self.Theme.Nav
+	Instance.new("UICorner", Top).CornerRadius = UDim.new(0, 8)
+	self.Top = Top
+
+	local TitleLabel = Instance.new("TextLabel", Top)
+	TitleLabel.Name = "Title"
+	TitleLabel.BackgroundTransparency = 1
+	TitleLabel.Size = UDim2.new(1, -12, 1, 0)
+	TitleLabel.Position = UDim2.new(0, 12, 0, 0)
+	TitleLabel.Text = title
+	TitleLabel.TextColor3 = self.Theme.Text
+	TitleLabel.Font = Enum.Font.SourceSansSemibold
+	TitleLabel.TextSize = 18
+	TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	-- close button toggles visibility
+	local CloseBtn = Instance.new("TextButton", Top)
+	CloseBtn.Name = "Close"
+	CloseBtn.Size = UDim2.new(0, 36, 0, 28)
+	CloseBtn.Position = UDim2.new(1, -44, 0, 6)
+	CloseBtn.Text = "X"
+	CloseBtn.Font = Enum.Font.SourceSansBold
+	CloseBtn.TextSize = 16
+	CloseBtn.TextColor3 = self.Theme.Text
+	CloseBtn.BackgroundColor3 = self.Theme.Panel
+	Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+	CloseBtn.MouseEnter:Connect(function() Tween(CloseBtn, {BackgroundColor3 = self.Theme.Hover}) end)
+	CloseBtn.MouseLeave:Connect(function() Tween(CloseBtn, {BackgroundColor3 = self.Theme.Panel}) end)
+	CloseBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+	-- left nav
+	local Nav = Instance.new("Frame", Main)
+	Nav.Name = "Nav"
+	Nav.BackgroundColor3 = self.Theme.Nav
+	Nav.Size = UDim2.new(0, NAV_WIDTH, 1, -TOP_HEIGHT)
+	Nav.Position = UDim2.new(0, 0, 0, TOP_HEIGHT)
+	Instance.new("UICorner", Nav).CornerRadius = UDim.new(0, 8)
+	local navPad = Instance.new("UIPadding", Nav)
+	navPad.PaddingTop = UDim.new(0, 10)
+	navPad.PaddingLeft = UDim.new(0, 10)
+	local navList = Instance.new("UIListLayout", Nav)
+	navList.SortOrder = Enum.SortOrder.LayoutOrder
+	navList.Padding = UDim.new(0, 8)
+	self.Nav = Nav
+
+	-- right content wrapper
+	local Content = Instance.new("Frame", Main)
+	Content.Name = "Content"
+	Content.BackgroundColor3 = self.Theme.Panel
+	Content.Size = UDim2.new(1, -NAV_WIDTH, 1, -TOP_HEIGHT)
+	Content.Position = UDim2.new(0, NAV_WIDTH, 0, TOP_HEIGHT)
+	Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 8)
+	self.Content = Content
+
+	-- store themeable children for easier updates
+	self._themedChildren = {}
+	self._themedChildren[Main] = true
+	self._themedChildren[Top] = true
+	self._themedChildren[Nav] = true
+	self._themedChildren[Content] = true
+
+	return self
+end
+
+-- Apply theme to core & existing elements
+function Library:SetTheme(name)
+	if not self.Themes[name] then return false, "Unknown theme" end
+	self.ThemeName = name
+	self.Theme = self.Themes[name]
+
+	-- core areas
+	self.Main.BackgroundColor3 = self.Theme.Main
+	self.Top.BackgroundColor3 = self.Theme.Nav
+	self.Nav.BackgroundColor3 = self.Theme.Nav
+	self.Content.BackgroundColor3 = self.Theme.Panel
+
+	-- apply to nav buttons and content children
+	for _, tab in ipairs(self.Tabs) do
+		local btn = tab.Button
+		if btn and btn:IsA("TextButton") then
+			btn.BackgroundColor3 = self.Theme.Nav
+			btn.TextColor3 = self.Theme.Text
+		end
+		for _, child in ipairs(tab.Content:GetChildren()) do
+			if child:IsA("TextLabel") then
+				child.TextColor3 = self.Theme.Text
+				if child:GetAttribute("isLabel") then child.BackgroundColor3 = self.Theme.Panel end
+			elseif child:IsA("TextButton") then
+				child.TextColor3 = self.Theme.Text
+				if child:GetAttribute("isAccent") then
+					child.BackgroundColor3 = self.Theme.Accent
+					child.TextColor3 = Color3.new(1,1,1)
+				else
+					child.BackgroundColor3 = self.Theme.Panel
+				end
+			elseif child:IsA("Frame") then
+				child.BackgroundColor3 = self.Theme.Surface
+			elseif child:IsA("ScrollingFrame") then
+				child.BackgroundTransparency = 1
+			elseif child:IsA("TextBox") then
+				child.BackgroundColor3 = self.Theme.CodeBg
+				child.TextColor3 = self.Theme.Text
+			end
+		end
+	end
+
+	return true
+end
+
+-- create a tab
 function Library:CreateTab(opts)
 	opts = opts or {}
-	opts.name = opts.name or "Tab"
+	local name = opts.name or "Tab"
+	local icon = opts.icon
 
 	local tab = {}
+	-- nav button
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -12, 0, 36)
+	btn.BackgroundColor3 = self.Theme.Nav
+	btn.Text = "   "..tostring(name)
+	btn.TextColor3 = self.Theme.Text
+	btn.Font = Enum.Font.SourceSansSemibold
+	btn.TextSize = 15
+	btn.TextXAlignment = Enum.TextXAlignment.Left
+	btn.Parent = self.Nav
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 
-	tab.Button = Instance.new("TextButton")
-	tab.Button.Size = UDim2.new(1, -10, 0, 34)
-	tab.Button.BackgroundColor3 = Color3.fromRGB(55,55,55)
-	tab.Button.Text = opts.name
-	tab.Button.TextColor3 = Color3.new(1,1,1)
-	tab.Button.Parent = self.Nav
+	-- icon
+	if icon and type(icon) == "string" then
+		local il = Instance.new("ImageLabel", btn)
+		il.Size = UDim2.new(0, 18, 0, 18)
+		il.Position = UDim2.new(0, 8, 0.5, -9)
+		il.BackgroundTransparency = 1
+		safeSetImage(il, icon)
+	end
 
-	tab.Content = Instance.new("ScrollingFrame", self.Main)
-	tab.Content.Size = UDim2.new(1, -150, 1, 0)
-	tab.Content.Position = UDim2.new(0, 150, 0, 0)
-	tab.Content.ScrollBarThickness = 4
-	tab.Content.Visible = false
-	tab.Content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	-- content area
+	local cont = Instance.new("ScrollingFrame", self.Content)
+	cont.Size = UDim2.new(1, 0, 1, 0)
+	cont.BackgroundTransparency = 1
+	cont.ScrollBarThickness = 6
+	cont.Visible = false
+	local list = Instance.new("UIListLayout", cont)
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Padding = UDim.new(0, 10)
+	local pad = Instance.new("UIPadding", cont)
+	pad.PaddingTop = UDim.new(0, 12)
+	pad.PaddingLeft = UDim.new(0, 12)
 
-	local lay = Instance.new("UIListLayout", tab.Content)
-	lay.Padding = UDim.new(0, 10)
-	lay.SortOrder = Enum.SortOrder.LayoutOrder
+	tab.Button = btn
+	tab.Content = cont
 
-	tab.Button.MouseButton1Click:Connect(function()
-		if self.CurrentTab then
+	-- show logic
+	btn.MouseButton1Click:Connect(function()
+		-- hide previous
+		if self.CurrentTab and self.CurrentTab.Content then
 			self.CurrentTab.Content.Visible = false
+			Tween(self.CurrentTab.Button, {BackgroundColor3 = self.Theme.Nav}, 0.12)
 		end
 		self.CurrentTab = tab
-		tab.Content.Visible = true
+		cont.Visible = true
+		Tween(btn, {BackgroundColor3 = self.Theme.Panel}, 0.12)
 	end)
 
-	if not self.CurrentTab then
+	-- auto-show first tab
+	if #self.Tabs == 0 then
 		self.CurrentTab = tab
-		tab.Content.Visible = true
+		cont.Visible = true
+		btn.BackgroundColor3 = self.Theme.Panel
 	end
 
 	table.insert(self.Tabs, tab)
 	return tab
 end
 
-------------------------------------------------------------
--- ELEMENTS
-------------------------------------------------------------
+-- Base helper to theme a new child (register)
+function Library:_registerThemeable(obj, kind)
+	if kind == "accent" then obj:SetAttribute("isAccent", true) end
+	if kind == "label" then obj:SetAttribute("isLabel", true) end
+end
+
+-- AddLabel
 function Library:AddLabel(tab, text)
 	local lbl = Instance.new("TextLabel")
-	lbl.Size = UDim2.new(1, -20, 0, 26)
+	lbl.Size = UDim2.new(1, -24, 0, 22)
 	lbl.BackgroundTransparency = 1
-	lbl.TextColor3 = Color3.new(1,1,1)
-	lbl.Text = text
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.Font = Enum.Font.SourceSans
+	lbl.TextSize = 16
+	lbl.TextColor3 = self.Theme.Text
+	lbl.Text = tostring(text or "")
 	lbl.Parent = tab.Content
+	self:_registerThemeable(lbl, "label")
+	return lbl
 end
 
-function Library:AddToggle(tab, name, default, callback)
-	local state = default
-
+-- AddButton
+function Library:AddButton(tab, text, callback)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -20, 0, 32)
-	btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+	btn.Size = UDim2.new(1, -24, 0, 36)
+	btn.BackgroundColor3 = self.Theme.Accent
 	btn.TextColor3 = Color3.new(1,1,1)
-	btn.Text = name .. " : " .. (state and "ON" or "OFF")
+	btn.Font = Enum.Font.SourceSansSemibold
+	btn.TextSize = 15
+	btn.Text = tostring(text or "Button")
 	btn.Parent = tab.Content
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+	self:_registerThemeable(btn, "accent")
+	btn.MouseEnter:Connect(function() Tween(btn, {BackgroundColor3 = self.Theme.Hover}) end)
+	btn.MouseLeave:Connect(function() Tween(btn, {BackgroundColor3 = self.Theme.Accent}) end)
+	if type(callback) == "function" then btn.MouseButton1Click:Connect(callback) end
+	return btn
+end
 
+-- AddToggle
+function Library:AddToggle(tab, text, default, callback)
+	local state = default and true or false
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -24, 0, 36)
+	btn.BackgroundColor3 = self.Theme.Panel
+	btn.TextColor3 = self.Theme.Text
+	btn.Font = Enum.Font.SourceSans
+	btn.TextSize = 15
+	btn.Text = ("%s : %s"):format(tostring(text), state and "ON" or "OFF")
+	btn.Parent = tab.Content
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+	self:_registerThemeable(btn, nil)
 	btn.MouseButton1Click:Connect(function()
 		state = not state
-		btn.Text = name .. " : " .. (state and "ON" or "OFF")
-		callback(state)
+		btn.Text = ("%s : %s"):format(tostring(text), state and "ON" or "OFF")
+		if type(callback) == "function" then callback(state) end
 	end)
+	return btn
 end
 
-function Library:AddSlider(tab, name, min, max, default, callback)
+-- AddSlider
+function Library:AddSlider(tab, text, min, max, default, callback)
+	min = tonumber(min) or 0
+	max = tonumber(max) or 100
+	default = tonumber(default) or min
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, -20, 0, 40)
-	frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	frame.Size = UDim2.new(1, -24, 0, 48)
+	frame.BackgroundTransparency = 1
 	frame.Parent = tab.Content
 
-	local label = Instance.new("TextLabel")
+	local label = Instance.new("TextLabel", frame)
 	label.Size = UDim2.new(1, 0, 0, 20)
+	label.Position = UDim2.new(0, 0, 0, 0)
 	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.new(1,1,1)
-	label.Text = name .. ": " .. default
-	label.Parent = frame
+	label.Font = Enum.Font.SourceSans
+	label.TextSize = 14
+	label.TextColor3 = self.Theme.Text
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Text = ("%s : %d"):format(tostring(text), default)
 
-	local bar = Instance.new("Frame")
-	bar.Size = UDim2.new(1, -10, 0, 10)
-	bar.Position = UDim2.new(0, 5, 0, 25)
-	bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	bar.Parent = frame
+	local bar = Instance.new("Frame", frame)
+	bar.Size = UDim2.new(1, 0, 0, 10)
+	bar.Position = UDim2.new(0, 0, 0, 28)
+	bar.BackgroundColor3 = self.Theme.Surface
+	Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
 
-	local fill = Instance.new("Frame")
-	fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)
-	fill.BackgroundColor3 = Color3.fromRGB(80, 150, 255)
-	fill.Parent = bar
+	local fill = Instance.new("Frame", bar)
+	fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+	fill.BackgroundColor3 = self.Theme.Accent
+	Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 6)
 
+	local dragging = false
+	local conn
 	bar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			local moveConn
-			moveConn = UIS.InputChanged:Connect(function(i)
+			dragging = true
+			conn = UserInputService.InputChanged:Connect(function(i)
 				if i.UserInputType == Enum.UserInputType.MouseMovement then
-					local pos = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-					fill.Size = UDim2.new(pos,0,1,0)
-					local val = math.floor(min + (max - min) * pos)
-					label.Text = name .. ": " .. val
-					callback(val)
-				end
-			end)
-
-			UIS.InputEnded:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 then
-					if moveConn then moveConn:Disconnect() end
+					local rel = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+					fill.Size = UDim2.new(rel, 0, 1, 0)
+					local val = math.floor(min + rel * (max - min))
+					label.Text = ("%s : %d"):format(tostring(text), val)
+					if type(callback) == "function" then callback(val) end
 				end
 			end)
 		end
 	end)
+	UserInputService.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
+			if conn then conn:Disconnect() conn = nil end
+			dragging = false
+		end
+	end)
+
+	self:_registerThemeable(bar)
+	self:_registerThemeable(fill)
+	self:_registerThemeable(label, "label")
+
+	return { frame = frame, label = label, bar = bar, fill = fill }
 end
 
-function Library:AddDropdown(tab, name, list, callback)
-	local main = Instance.new("TextButton")
-	main.Size = UDim2.new(1, -20, 0, 32)
-	main.BackgroundColor3 = Color3.fromRGB(45,45,45)
-	main.TextColor3 = Color3.new(1,1,1)
-	main.Text = name .. " ▼"
-	main.Parent = tab.Content
-
-	local open = false
+-- AddDropdown
+function Library:AddDropdown(tab, text, list, callback)
+	list = list or {}
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -24, 0, 36)
+	btn.BackgroundColor3 = self.Theme.Panel
+	btn.TextColor3 = self.Theme.Text
+	btn.Font = Enum.Font.SourceSans
+	btn.TextSize = 15
+	btn.Text = tostring(text) .. " ▼"
+	btn.Parent = tab.Content
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
 
 	local container = Instance.new("Frame")
-	container.Size = UDim2.new(1, -20, 0, #list * 30)
-	container.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	container.Size = UDim2.new(1, -24, 0, #list * 36)
+	container.BackgroundColor3 = self.Theme.Surface
 	container.Visible = false
 	container.Parent = tab.Content
-
+	Instance.new("UICorner", container).CornerRadius = UDim.new(0,6)
 	local layout = Instance.new("UIListLayout", container)
+	layout.Padding = UDim.new(0, 6)
 
 	for _, item in ipairs(list) do
-		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(1, 0, 0, 28)
-		btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-		btn.TextColor3 = Color3.new(1,1,1)
-		btn.Text = item
-		btn.Parent = container
-
-		btn.MouseButton1Click:Connect(function()
-			main.Text = name .. ": " .. item
-			callback(item)
+		local opt = Instance.new("TextButton")
+		opt.Size = UDim2.new(1, -12, 0, 32)
+		opt.BackgroundColor3 = self.Theme.Panel
+		opt.TextColor3 = self.Theme.Text
+		opt.Font = Enum.Font.SourceSans
+		opt.TextSize = 14
+		opt.Text = tostring(item)
+		opt.Parent = container
+		Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 6)
+		opt.MouseButton1Click:Connect(function()
+			btn.Text = ("%s : %s"):format(tostring(text), tostring(item))
 			container.Visible = false
-			open = false
+			if type(callback) == "function" then callback(item) end
 		end)
 	end
 
-	main.MouseButton1Click:Connect(function()
-		open = not open
-		container.Visible = open
+	btn.MouseButton1Click:Connect(function()
+		container.Visible = not container.Visible
 	end)
+
+	return { button = btn, container = container }
 end
 
-------------------------------------------------------------
--- EXECUTOR
-------------------------------------------------------------
+-- AddExecutor
 function Library:AddExecutor(tab)
 	local box = Instance.new("TextBox")
-	box.Size = UDim2.new(1, -20, 0, 250)
+	box.Size = UDim2.new(1, -24, 0, 220)
+	box.BackgroundColor3 = self.Theme.CodeBg
+	box.TextColor3 = self.Theme.Text
+	box.Font = Enum.Font.Code
+	box.TextSize = 14
 	box.MultiLine = true
-	box.Text = "-- code here"
 	box.ClearTextOnFocus = false
-	box.BackgroundColor3 = Color3.fromRGB(20,20,20)
-	box.TextColor3 = Color3.new(1,1,1)
+	box.Text = "-- Paste Lua code or raw URL here"
 	box.Parent = tab.Content
+	Instance.new("UICorner", box).CornerRadius = UDim.new(0,6)
 
 	local run = Instance.new("TextButton")
-	run.Size = UDim2.new(1, -20, 0, 32)
-	run.Text = "Execute"
-	run.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	run.Size = UDim2.new(0.46, -12, 0, 36)
+	run.Position = UDim2.new(0, 0, 0, 228)
+	run.BackgroundColor3 = self.Theme.Accent
 	run.TextColor3 = Color3.new(1,1,1)
+	run.Font = Enum.Font.SourceSansSemibold
+	run.TextSize = 15
+	run.Text = "Execute"
 	run.Parent = tab.Content
+	Instance.new("UICorner", run).CornerRadius = UDim.new(0,6)
+	run:SetAttribute("isAccent", true)
 
+	local loadBtn = Instance.new("TextButton")
+	loadBtn.Size = UDim2.new(0.46, -12, 0, 36)
+	loadBtn.Position = UDim2.new(0.54, 12, 0, 228)
+	loadBtn.BackgroundColor3 = self.Theme.Panel
+	loadBtn.TextColor3 = self.Theme.Text
+	loadBtn.Font = Enum.Font.SourceSans
+	loadBtn.TextSize = 14
+	loadBtn.Text = "Load Raw URL"
+	loadBtn.Parent = tab.Content
+	Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0,6)
+
+	local output = Instance.new("TextLabel")
+	output.Size = UDim2.new(1, -24, 0, 96)
+	output.Position = UDim2.new(0, 0, 0, 272)
+	output.BackgroundColor3 = self.Theme.Surface
+	output.TextColor3 = self.Theme.Text
+	output.Font = Enum.Font.SourceSans
+	output.TextSize = 14
+	output.TextWrapped = true
+	output.Text = "Output:"
+	output.Parent = tab.Content
+	Instance.new("UICorner", output).CornerRadius = UDim.new(0,6)
+
+	-- run behavior
 	run.MouseButton1Click:Connect(function()
-		loadstring(box.Text)()
-	end)
-
-	local load = Instance.new("TextButton")
-	load.Size = UDim2.new(1, -20, 0, 32)
-	load.Text = "Load GitHub Raw URL"
-	load.BackgroundColor3 = Color3.fromRGB(70,70,70)
-	load.TextColor3 = Color3.new(1,1,1)
-	load.Parent = tab.Content
-
-	load.MouseButton1Click:Connect(function()
-		local ok, code = pcall(function()
-			return game:HttpGet(box.Text)
-		end)
-		if ok then
-			loadstring(code)()
+		local code = tostring(box.Text or "")
+		-- if it's a URL, fetch
+		if code:match("^%s*https?://") then
+			output.Text = "Fetching source..."
+			local ok, fetched = pcall(function() return HttpService:GetAsync(code) end)
+			if not ok then
+				output.Text = "Failed to fetch raw URL."
+				return
+			end
+			code = fetched
+		end
+		-- compile
+		local f, err = loadstring(code)
+		if not f then
+			output.Text = "Syntax error: " .. tostring(err)
+			return
+		end
+		local ok2, res = pcall(f)
+		if ok2 then
+			output.Text = "Executed successfully."
+		else
+			output.Text = "Runtime error: " .. tostring(res)
 		end
 	end)
+
+	loadBtn.MouseButton1Click:Connect(function()
+		local url = tostring(box.Text or "")
+		if not url:match("^%s*https?://") then
+			output.Text = "Paste a raw URL in the editor and press Load Raw URL."
+			return
+		end
+		output.Text = "Loading raw URL..."
+		local ok, fetched = pcall(function() return HttpService:GetAsync(url) end)
+		if not ok then
+			output.Text = "Failed to fetch URL."
+			return
+		end
+		box.Text = fetched
+		output.Text = "Loaded raw content into editor."
+	end)
+
+	return { box = box, runBtn = run, loadBtn = loadBtn, output = output }
 end
 
-------------------------------------------------------------
--- RETURN LIBRARY
-------------------------------------------------------------
+-- Return library object
 return Library
