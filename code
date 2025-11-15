@@ -1,156 +1,251 @@
--- // Services
+--========================================================--
+--                SUPER CUSTOM UI LIBRARY                 --
+--========================================================--
+
+local Library = {}
+Library.__index = Library
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
+local UIS = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 
---== Variables ==--
-local camera = workspace.CurrentCamera
-local viewport = camera.ViewportSize
+------------------------------------------------------------
+-- INIT GUI
+------------------------------------------------------------
+function Library:Init(opts)
+	opts = opts or {}
+	opts.name = opts.name or "Custom UI"
 
---== Library ==--
-local Library = {}
-Library.Tree = {}
+	local gui = setmetatable({}, Library)
+	gui.Tabs = {}
+	gui.CurrentTab = nil
 
--- Validate function
-function Library:validate(defaults, options)
-	for i, v in pairs(defaults) do
-		if options[i] == nil then
-			options[i] = v
+	gui.ScreenGui = Instance.new("ScreenGui")
+	gui.ScreenGui.Name = opts.name
+	gui.ScreenGui.ResetOnSpawn = false
+	gui.ScreenGui.Parent = game:GetService("CoreGui")
+
+	gui.Main = Instance.new("Frame")
+	gui.Main.Size = UDim2.new(0, 680, 0, 450)
+	gui.Main.Position = UDim2.new(0.5, -340, 0.5, -225)
+	gui.Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	gui.Main.BorderSizePixel = 0
+	gui.Main.Parent = gui.ScreenGui
+
+	gui.Nav = Instance.new("Frame")
+	gui.Nav.Size = UDim2.new(0, 150, 1, 0)
+	gui.Nav.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	gui.Nav.Parent = gui.Main
+
+	local layout = Instance.new("UIListLayout", gui.Nav)
+	layout.Padding = UDim.new(0, 6)
+	layout.FillDirection = Enum.FillDirection.Vertical
+
+	return gui
+end
+
+------------------------------------------------------------
+-- CREATE TAB
+------------------------------------------------------------
+function Library:CreateTab(opts)
+	opts = opts or {}
+	opts.name = opts.name or "Tab"
+
+	local tab = {}
+
+	tab.Button = Instance.new("TextButton")
+	tab.Button.Size = UDim2.new(1, -10, 0, 34)
+	tab.Button.BackgroundColor3 = Color3.fromRGB(55,55,55)
+	tab.Button.Text = opts.name
+	tab.Button.TextColor3 = Color3.new(1,1,1)
+	tab.Button.Parent = self.Nav
+
+	tab.Content = Instance.new("ScrollingFrame", self.Main)
+	tab.Content.Size = UDim2.new(1, -150, 1, 0)
+	tab.Content.Position = UDim2.new(0, 150, 0, 0)
+	tab.Content.ScrollBarThickness = 4
+	tab.Content.Visible = false
+	tab.Content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+	local lay = Instance.new("UIListLayout", tab.Content)
+	lay.Padding = UDim.new(0, 10)
+	lay.SortOrder = Enum.SortOrder.LayoutOrder
+
+	tab.Button.MouseButton1Click:Connect(function()
+		if self.CurrentTab then
+			self.CurrentTab.Content.Visible = false
 		end
+		self.CurrentTab = tab
+		tab.Content.Visible = true
+	end)
+
+	if not self.CurrentTab then
+		self.CurrentTab = tab
+		tab.Content.Visible = true
 	end
-	return options
+
+	table.insert(self.Tabs, tab)
+	return tab
 end
 
-function Library:new(options)
-	options = Library:validate({
-		name = "UI "
-	}, options or {})
-
-
-	Library.Tree["1"] = Instance.new("ScreenGui")
-	Library.Tree["1"].Name = "sk library"
-	Library.Tree["1"].IgnoreGuiInset = true
-	Library.Tree["1"].Parent = RunService:IsStudio() and Players.LocalPlayer:WaitForChild("PlayerGui") or CoreGui
-
-	-- Create Main Frame
-	Library.Tree["2"] = Instance.new("Frame")
-	local main = Library.Tree["2"]
-	main.Name = "Main"
-	main.Parent = Library.Tree["1"]
-	main.BorderSizePixel = 0
-	main.BackgroundColor3 = Color3.fromRGB(61, 62, 62)
-	main.Size = UDim2.new(0, 400, 0, 300)
-
-	-- === Auto-center ===
-	local function centerFrame()
-		local sizeXOffset = main.Size.X.Offset
-		local sizeYOffset = main.Size.Y.Offset
-		local newViewport = camera.ViewportSize
-		main.Position = UDim2.fromOffset(
-			(newViewport.X / 2) - (sizeXOffset / 2),
-			(newViewport.Y / 2) - (sizeYOffset / 2)
-		)
-	end
-	centerFrame()
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(centerFrame)
-
-	Library.Tree["3"] = Instance.new("UICorner")
-	Library.Tree["3"].CornerRadius = UDim.new(0, 6)
-	Library.Tree["3"].Parent = main
-
-	-- DropShadowHolder
-	Library.Tree["4"] = Instance.new("Frame")
-	Library.Tree["4"].ZIndex = 0
-	Library.Tree["4"].BorderSizePixel = 0
-	Library.Tree["4"].Size = UDim2.new(1, 0, 1, 0)
-	Library.Tree["4"].Name = "DropShadowHolder"
-	Library.Tree["4"].BackgroundTransparency = 1
-	Library.Tree["4"].Parent = main
-
-
-	Library.Tree["5"] = Instance.new("ImageLabel")
-	Library.Tree["5"].ZIndex = 0
-	Library.Tree["5"].BorderSizePixel = 0
-	Library.Tree["5"].SliceCenter = Rect.new(49, 49, 450, 450)
-	Library.Tree["5"].ScaleType = Enum.ScaleType.Slice
-	Library.Tree["5"].ImageTransparency = 0.5
-	Library.Tree["5"].ImageColor3 = Color3.fromRGB(0, 0, 0)
-	Library.Tree["5"].AnchorPoint = Vector2.new(0.5, 0.5)
-	Library.Tree["5"].Image = "rbxassetid://6014261993"
-	Library.Tree["5"].Size = UDim2.new(1, 47, 1, 47)
-	Library.Tree["5"].BackgroundTransparency = 1
-	Library.Tree["5"].Name = "DropShadow"
-	Library.Tree["5"].Position = UDim2.new(0.5, 0, 0.5, 0)
-	Library.Tree["5"].Parent = Library.Tree["4"]
-
-	-- TopBar
-	Library.Tree["6"] = Instance.new("Frame")
-	Library.Tree["6"].BorderSizePixel = 0
-	Library.Tree["6"].BackgroundColor3 = Color3.fromRGB(60, 61, 61)
-	Library.Tree["6"].Size = UDim2.new(1, 0, 0, 30)
-	Library.Tree["6"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-	Library.Tree["6"].Name = "TopBar"
-	Library.Tree["6"].Parent = main
-
-
-	Library.Tree["7"] = Instance.new("UICorner")
-	Library.Tree["7"].CornerRadius = UDim.new(0, 6)
-	Library.Tree["7"].Parent = Library.Tree["6"]
-
-
-	Library.Tree["8"] = Instance.new("Frame")
-	Library.Tree["8"].BorderSizePixel = 0
-	Library.Tree["8"].BackgroundColor3 = Color3.fromRGB(60, 61, 61)
-	Library.Tree["8"].AnchorPoint = Vector2.new(0, 1)
-	Library.Tree["8"].Size = UDim2.new(1, 0, 0.5, 0)
-	Library.Tree["8"].Position = UDim2.new(0, 0, 1, 0)
-	Library.Tree["8"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-	Library.Tree["8"].Name = "Extension"
-	Library.Tree["8"].Parent = Library.Tree["6"]
-
-
-	Library.Tree["9"] = Instance.new("TextLabel")
-	Library.Tree["9"].BorderSizePixel = 0
-	Library.Tree["9"].TextSize = 14
-	Library.Tree["9"].TextXAlignment = Enum.TextXAlignment.Left
-	Library.Tree["9"].BackgroundColor3 = Color3.fromRGB(84, 85, 85)
-	Library.Tree["9"].FontFace = Font.new("rbxasset://fonts/families/Ubuntu.json")
-	Library.Tree["9"].TextColor3 = Color3.fromRGB(255, 255, 255)
-	Library.Tree["9"].Size = UDim2.new(0.5, 0, 1, 0)
-	Library.Tree["9"].Text = options["name"]
-	Library.Tree["9"].Name = options["name"]
-	Library.Tree["9"].Parent = Library.Tree["6"]
-
-
-	Library.Tree["a"] = Instance.new("UIPadding")
-	Library.Tree["a"].PaddingTop = UDim.new(0, 1)
-	Library.Tree["a"].PaddingLeft = UDim.new(0, 8)
-	Library.Tree["a"].Parent = Library.Tree["9"]
-
-
-	Library.Tree["b"] = Instance.new("ImageLabel")
-	Library.Tree["b"].BorderSizePixel = 0
-	Library.Tree["b"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	Library.Tree["b"].AnchorPoint = Vector2.new(1, 0.5)
-	Library.Tree["b"].Image = "rbxassetid://150902481"
-	Library.Tree["b"].Size = UDim2.new(0, 18, 0, 18)
-	Library.Tree["b"].BackgroundTransparency = 1
-	Library.Tree["b"].Name = "Close"
-	Library.Tree["b"].Position = UDim2.new(1, -6, 0.5, 0)
-	Library.Tree["b"].Parent = Library.Tree["6"]
-
-
-	Library.Tree["c"] = Instance.new("Frame")
-	Library.Tree["c"].BorderSizePixel = 0
-	Library.Tree["c"].BackgroundColor3 = Color3.fromRGB(66, 66, 66)
-	Library.Tree["c"].AnchorPoint = Vector2.new(0, 1)
-	Library.Tree["c"].Size = UDim2.new(1, 0, 0, 1)
-	Library.Tree["c"].Position = UDim2.new(0, 0, 1, 0)
-	Library.Tree["c"].Parent = Library.Tree["6"]
-
-	return Library.Tree["1"]
+------------------------------------------------------------
+-- ELEMENTS
+------------------------------------------------------------
+function Library:AddLabel(tab, text)
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(1, -20, 0, 26)
+	lbl.BackgroundTransparency = 1
+	lbl.TextColor3 = Color3.new(1,1,1)
+	lbl.Text = text
+	lbl.Parent = tab.Content
 end
 
+function Library:AddToggle(tab, name, default, callback)
+	local state = default
 
-Library:new()
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -20, 0, 32)
+	btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Text = name .. " : " .. (state and "ON" or "OFF")
+	btn.Parent = tab.Content
+
+	btn.MouseButton1Click:Connect(function()
+		state = not state
+		btn.Text = name .. " : " .. (state and "ON" or "OFF")
+		callback(state)
+	end)
+end
+
+function Library:AddSlider(tab, name, min, max, default, callback)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, -20, 0, 40)
+	frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	frame.Parent = tab.Content
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 0, 20)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Text = name .. ": " .. default
+	label.Parent = frame
+
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(1, -10, 0, 10)
+	bar.Position = UDim2.new(0, 5, 0, 25)
+	bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	bar.Parent = frame
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)
+	fill.BackgroundColor3 = Color3.fromRGB(80, 150, 255)
+	fill.Parent = bar
+
+	bar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local moveConn
+			moveConn = UIS.InputChanged:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseMovement then
+					local pos = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+					fill.Size = UDim2.new(pos,0,1,0)
+					local val = math.floor(min + (max - min) * pos)
+					label.Text = name .. ": " .. val
+					callback(val)
+				end
+			end)
+
+			UIS.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					if moveConn then moveConn:Disconnect() end
+				end
+			end)
+		end
+	end)
+end
+
+function Library:AddDropdown(tab, name, list, callback)
+	local main = Instance.new("TextButton")
+	main.Size = UDim2.new(1, -20, 0, 32)
+	main.BackgroundColor3 = Color3.fromRGB(45,45,45)
+	main.TextColor3 = Color3.new(1,1,1)
+	main.Text = name .. " ▼"
+	main.Parent = tab.Content
+
+	local open = false
+
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, -20, 0, #list * 30)
+	container.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	container.Visible = false
+	container.Parent = tab.Content
+
+	local layout = Instance.new("UIListLayout", container)
+
+	for _, item in ipairs(list) do
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 28)
+		btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+		btn.TextColor3 = Color3.new(1,1,1)
+		btn.Text = item
+		btn.Parent = container
+
+		btn.MouseButton1Click:Connect(function()
+			main.Text = name .. ": " .. item
+			callback(item)
+			container.Visible = false
+			open = false
+		end)
+	end
+
+	main.MouseButton1Click:Connect(function()
+		open = not open
+		container.Visible = open
+	end)
+end
+
+------------------------------------------------------------
+-- EXECUTOR
+------------------------------------------------------------
+function Library:AddExecutor(tab)
+	local box = Instance.new("TextBox")
+	box.Size = UDim2.new(1, -20, 0, 250)
+	box.MultiLine = true
+	box.Text = "-- code here"
+	box.ClearTextOnFocus = false
+	box.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	box.TextColor3 = Color3.new(1,1,1)
+	box.Parent = tab.Content
+
+	local run = Instance.new("TextButton")
+	run.Size = UDim2.new(1, -20, 0, 32)
+	run.Text = "Execute"
+	run.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	run.TextColor3 = Color3.new(1,1,1)
+	run.Parent = tab.Content
+
+	run.MouseButton1Click:Connect(function()
+		loadstring(box.Text)()
+	end)
+
+	local load = Instance.new("TextButton")
+	load.Size = UDim2.new(1, -20, 0, 32)
+	load.Text = "Load GitHub Raw URL"
+	load.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	load.TextColor3 = Color3.new(1,1,1)
+	load.Parent = tab.Content
+
+	load.MouseButton1Click:Connect(function()
+		local ok, code = pcall(function()
+			return game:HttpGet(box.Text)
+		end)
+		if ok then
+			loadstring(code)()
+		end
+	end)
+end
+
+------------------------------------------------------------
+-- RETURN LIBRARY
+------------------------------------------------------------
+return Library
